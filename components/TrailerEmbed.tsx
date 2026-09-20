@@ -188,7 +188,7 @@ export default function TrailerEmbed({
           aria-modal="true"
           aria-label={`Book trailer de ${title}`}
           onClick={close}
-          className={`fixed inset-0 z-[100] grid place-items-center bg-midnight/95 p-3 backdrop-blur-xl sm:p-6 ${
+          className={`fixed inset-0 z-100 grid place-items-center bg-midnight/95 p-3 backdrop-blur-xl sm:p-6 ${
             closing ? "animate-curtain-out" : "animate-curtain-in"
           }`}
         >
