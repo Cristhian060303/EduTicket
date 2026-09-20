@@ -13,11 +13,31 @@ import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 
 let client: SupabaseClient | null = null;
 
+/**
+ * The project URL, whichever name it arrives under.
+ *
+ * `NEXT_PUBLIC_SUPABASE_URL` is the one we set by hand; `SUPABASE_URL` is
+ * injected by the Vercel↔Supabase integration. Accepting both means the app
+ * runs whether or not that integration is installed.
+ */
+function supabaseUrl(): string | undefined {
+  return process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.SUPABASE_URL;
+}
+
+/**
+ * The full-access key. `SUPABASE_SERVICE_ROLE_KEY` is the classic name and
+ * `SUPABASE_SECRET_KEY` (sb_secret_...) the newer one the integration adds.
+ * Both bypass row level security, so neither may ever reach the browser.
+ */
+function supabaseKey(): string | undefined {
+  return process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SECRET_KEY;
+}
+
 export function supabaseAdmin(): SupabaseClient {
   if (client) return client;
 
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  const url = supabaseUrl();
+  const key = supabaseKey();
 
   if (!url || !key) {
     throw new Error(
@@ -36,7 +56,5 @@ export function supabaseAdmin(): SupabaseClient {
 /** Are the Supabase variables configured yet? Lets the site keep working
  *  while the database does not exist yet (phase 1). */
 export function hasSupabase(): boolean {
-  return Boolean(
-    process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.SUPABASE_SERVICE_ROLE_KEY,
-  );
+  return Boolean(supabaseUrl() && supabaseKey());
 }
