@@ -6,8 +6,8 @@ Tickets digitales para la **Zona Literaria** — proyecto interdisciplinario.
 
 Los asistentes se registran con nombre, apellidos y curso, reciben un ticket con código QR y entran al salón mostrándolo en la puerta. Al terminar las presentaciones pueden solicitar el préstamo del libro que les interesó.
 
-- 📋 Plan completo del proyecto: [PLAN.md](PLAN.md)
 - 🎨 Identidad visual y sistema de diseño: [DESIGN.md](DESIGN.md)
+- 📋 El plan de implementación por fases es un documento de trabajo del equipo y se comparte por fuera del repositorio
 
 ---
 
@@ -87,7 +87,6 @@ EduTicket/
 │  └─ supabase.ts       Conexión a la base de datos (solo servidor)
 ├─ db/                  SQL para crear y poblar la base de datos
 ├─ public/covers/       Imágenes de las portadas
-├─ PLAN.md              Plan de implementación por fases
 └─ DESIGN.md            Identidad visual
 ```
 

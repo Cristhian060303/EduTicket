@@ -26,3 +26,6 @@ npm-debug.log*
 # Datos exportados del evento (contienen datos de estudiantes)
 /exportaciones
 *.csv
+
+# Documento de trabajo interno: se comparte con el equipo por fuera del repo
+PLAN.md
