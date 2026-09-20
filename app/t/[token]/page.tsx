@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { headers } from "next/headers";
 import { notFound } from "next/navigation";
 import QRCode from "qrcode";
 import Aurora from "@/components/Aurora";
@@ -17,10 +18,24 @@ export const metadata: Metadata = {
 
 export const dynamic = "force-dynamic";
 
-/** Absolute URL of this ticket, which is what the QR encodes. */
-function ticketUrl(token: string): string {
-  const base = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
-  return `${base.replace(/\/$/, "")}/t/${token}`;
+/**
+ * Absolute URL of this ticket, which is what the QR encodes.
+ *
+ * `NEXT_PUBLIC_SITE_URL` wins when it is set, so a ticket generated from a
+ * preview deployment still points at the real site. When it is missing — or
+ * set to an empty string, which is what broke the first QR codes — the domain
+ * is read from the request itself, so the link is always absolute.
+ */
+async function ticketUrl(token: string): Promise<string> {
+  const configured = process.env.NEXT_PUBLIC_SITE_URL?.trim();
+  if (configured) return `${configured.replace(/\/$/, "")}/t/${token}`;
+
+  const incoming = await headers();
+  const host = incoming.get("x-forwarded-host") ?? incoming.get("host") ?? "localhost:3000";
+  const protocol =
+    incoming.get("x-forwarded-proto") ?? (host.startsWith("localhost") ? "http" : "https");
+
+  return `${protocol}://${host}/t/${token}`;
 }
 
 export default async function TicketPage({ params }: Params) {
@@ -29,7 +44,7 @@ export default async function TicketPage({ params }: Params) {
 
   if (!ticket) notFound();
 
-  const url = ticketUrl(ticket.token);
+  const url = await ticketUrl(ticket.token);
 
   // Generated on the server so the QR is already in the HTML: it shows up
   // even if the phone loses signal right after opening the page.

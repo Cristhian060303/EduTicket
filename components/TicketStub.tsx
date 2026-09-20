@@ -26,6 +26,7 @@ export default function TicketStub({
   const time = startsAt.toLocaleTimeString("es-EC", {
     hour: "2-digit",
     minute: "2-digit",
+    timeZone: EVENT.timeZone,
   });
 
   return (
@@ -52,7 +53,7 @@ export default function TicketStub({
             width={180}
             height={180}
             unoptimized
-            className="size-[180px]"
+            className="size-45"
           />
         </div>
 
@@ -60,7 +61,7 @@ export default function TicketStub({
           <p className="text-xs tracking-[0.2em] text-mist uppercase print:text-black">
             A nombre de
           </p>
-          <p className="mt-1 font-display text-2xl leading-tight break-words text-parchment print:text-black">
+          <p className="mt-1 font-display text-2xl leading-tight wrap-break-word text-parchment print:text-black">
             {ticket.firstNames} {ticket.lastNames}
           </p>
           <p className="mt-1 text-mist print:text-black">

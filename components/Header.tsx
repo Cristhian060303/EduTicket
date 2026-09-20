@@ -66,7 +66,10 @@ export default function Header() {
           {/* Sized in `em`: the icon scales with the label and its height
               matches the cap height, so it doesn't float next to the text. */}
           <Ticket aria-hidden className="size-[1.25em] shrink-0" strokeWidth={1.8} />
-          <span className="leading-none">Obtener&nbsp;ticket</span>
+          {/* A plain space, not &nbsp;: this font renders U+00A0 with zero
+              width, which is what glued "Obtenerticket" together. The label
+              is kept on one line by whitespace-nowrap above. */}
+          <span className="leading-none">Obtener ticket</span>
         </a>
       </nav>
     </header>

@@ -17,6 +17,12 @@ export const EVENT = {
   dateLong: "Viernes 16 de octubre de 2026",
   dateShort: "16 oct 2026",
   venue: "Salón de música",
+  /**
+   * Times are always formatted in this zone, never the server's.
+   * Vercel runs in UTC, which turned 07:00 in Ecuador into "12:00 p.m."
+   * on the first tickets.
+   */
+  timeZone: "America/Guayaquil",
   capacity: 30,
   grades: ["8vo", "9no", "10mo"] as const,
   sections: ["A", "B", "C", "D"] as const,
