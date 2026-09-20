@@ -15,13 +15,15 @@ const LINKS = [
 /**
  * A link to a section of the landing page.
  *
- * Within the landing page it has to be a plain <a>: Next's <Link> resolves a
- * hash-only href against the current URL and appends to it, so jumping from
- * "/#books" to "#trailer" produced "/#books#trailer". The browser's own
- * resolution replaces the hash, which is what a same-page jump needs — and
- * there is no route change to hand to the router anyway.
+ * Always a plain <a>, never next/link. Link appends a hash to whatever hash
+ * the current URL already carries instead of replacing it: "#trailer" clicked
+ * from "/#books" gave "/#books#trailer", and "/#top" clicked from a book page
+ * gave "/#top#top". The browser's own URL resolution simply replaces the
+ * fragment, which is the behaviour a section jump needs.
  *
- * From any other page it is a real navigation, and there <Link> belongs.
+ * The cost is a full page load when coming from another page, which on a site
+ * this size is a fraction of a second — cheap next to a URL that grows every
+ * time somebody uses the menu.
  */
 function SectionLink({
   hash,
@@ -34,18 +36,10 @@ function SectionLink({
   atHome: boolean;
   className: string;
 }) {
-  if (atHome) {
-    return (
-      <a href={hash} className={className}>
-        {label}
-      </a>
-    );
-  }
-
   return (
-    <Link href={`/${hash}`} className={className}>
+    <a href={atHome ? hash : `/${hash}`} className={className}>
       {label}
-    </Link>
+    </a>
   );
 }
 
