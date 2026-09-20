@@ -251,19 +251,26 @@ export default function TrailerEmbed({
               turn because the rotation lock is on cannot be detected, so the
               message has to cover both cases: turning it, and why turning it
               might do nothing. */}
-          <div className="pointer-events-none absolute inset-x-0 bottom-3 px-6 text-center portrait:block sm:portrait:hidden">
-            <p className="inline-flex items-center gap-2 text-xs text-parchment/90">
-              <RotateCw aria-hidden className="size-[1.15em] shrink-0" />
-              Gira el teléfono para verlo en grande
-            </p>
-            <p className="mt-1 text-[11px] leading-snug text-mist/70">
-              Si no rota, desactiva el bloqueo de rotación de tu celular
+          {/* One container, two messages, only one of them ever shown. Keeping
+              them as siblings inside it — rather than as two absolutely
+              positioned blocks at the same coordinates — means a wrong
+              combination of variants would stack them, not print one over
+              the other. */}
+          <div className="pointer-events-none absolute inset-x-0 bottom-3 px-6 text-center">
+            <div className="hidden portrait:block sm:portrait:hidden">
+              <p className="inline-flex items-center gap-2 text-xs text-parchment/90">
+                <RotateCw aria-hidden className="size-[1.15em] shrink-0" />
+                Gira el teléfono para verlo en grande
+              </p>
+              <p className="mt-1 text-[11px] leading-snug text-mist/70">
+                Si no rota, desactiva el bloqueo de rotación de tu celular
+              </p>
+            </div>
+
+            <p className="text-xs text-mist/60 portrait:hidden sm:portrait:block">
+              Toca fuera del video o presiona Esc para volver
             </p>
           </div>
-
-          <p className="pointer-events-none absolute inset-x-0 bottom-3 text-center text-xs text-mist/60 portrait:hidden sm:portrait:block">
-            Toca fuera del video o presiona Esc para volver
-          </p>
         </div>
       )}
     </>
