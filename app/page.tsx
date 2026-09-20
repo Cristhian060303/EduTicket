@@ -1,10 +1,14 @@
 import { Play, Ticket } from "lucide-react";
+import Link from "next/link";
 import Aurora from "@/components/Aurora";
 import BookCard from "@/components/BookCard";
 import Countdown from "@/components/Countdown";
 import Header from "@/components/Header";
 import Reveal from "@/components/Reveal";
-import { BOOKS, EVENT } from "@/lib/site";
+import SeatMeter from "@/components/SeatMeter";
+import TrailerEmbed from "@/components/TrailerEmbed";
+import { getBooks, getSession } from "@/lib/db";
+import { EVENT } from "@/lib/site";
 
 const STEPS = [
   {
@@ -24,7 +28,17 @@ const STEPS = [
   },
 ];
 
-export default function Home() {
+// Seats run out as people register, so the landing page is always fresh.
+export const dynamic = "force-dynamic";
+
+export default async function Home() {
+  const [books, session] = await Promise.all([getBooks(), getSession()]);
+  const seatsFree = session?.seatsFree ?? EVENT.capacity;
+  const capacity = session?.capacity ?? EVENT.capacity;
+
+  // The event trailer is the first one the team publishes.
+  const featuredTrailer = books.find((book) => book.trailer)?.trailer ?? null;
+
   return (
     <>
       <Aurora />
@@ -48,14 +62,14 @@ export default function Home() {
           <Reveal delay={220}>
             <p className="mt-6 max-w-xl text-lg leading-relaxed text-mist">
               Tres obras, tres mundos montados dentro del {EVENT.venue.toLowerCase()}. El
-              aforo es de <strong className="text-parchment">{EVENT.capacity} personas</strong>{" "}
+              aforo es de <strong className="text-parchment">{capacity} personas</strong>{" "}
               entre {EVENT.grades.join(", ")}, y se entra con ticket digital.
             </p>
           </Reveal>
 
           <Reveal delay={320} className="mt-9 flex flex-wrap items-center gap-4">
-            <a
-              href="#register"
+            <Link
+              href="/register"
               className="group relative inline-flex items-center gap-2.5 overflow-hidden rounded-full bg-gold px-7 py-3.5 font-semibold text-midnight shadow-[0_18px_45px_-18px_var(--color-gold)] transition-transform duration-300 hover:scale-[1.04]"
             >
               <Ticket aria-hidden className="relative z-10 size-[1.25em] shrink-0" strokeWidth={1.8} />
@@ -64,7 +78,7 @@ export default function Home() {
                 aria-hidden
                 className="sheen absolute inset-0 opacity-0 transition-opacity group-hover:opacity-100"
               />
-            </a>
+            </Link>
             <a
               href="#trailer"
               className="inline-flex items-center gap-2.5 rounded-full border border-edge px-7 py-3.5 font-semibold text-parchment transition-colors hover:border-parchment/50 hover:bg-night/60"
@@ -74,7 +88,11 @@ export default function Home() {
             </a>
           </Reveal>
 
-          <Reveal delay={420} className="mt-14">
+          <Reveal delay={400} className="mt-10 max-w-md">
+            <SeatMeter seatsFree={seatsFree} capacity={capacity} />
+          </Reveal>
+
+          <Reveal delay={480} className="mt-12">
             <p className="mb-3 text-xs tracking-[0.2em] text-mist uppercase">
               Faltan para la jornada
             </p>
@@ -114,7 +132,7 @@ export default function Home() {
 
           {/* items-stretch + h-full on every Reveal keeps the three cards equal in height */}
           <div className="mt-12 grid items-stretch gap-7 md:grid-cols-3">
-            {BOOKS.map((book, i) => (
+            {books.map((book, i) => (
               <Reveal key={book.slug} delay={i * 150} className="h-full">
                 <BookCard book={book} />
               </Reveal>
@@ -130,22 +148,11 @@ export default function Home() {
           </Reveal>
 
           <Reveal delay={150} className="mt-8">
-            <div className="card grid aspect-video place-items-center overflow-hidden">
-              {/* Phase 2: the YouTube embed goes here, behind a facade (thumbnail + play button) */}
-              <div className="px-6 text-center">
-                <div className="mx-auto grid size-16 place-items-center rounded-full border border-gold/40 text-gold animate-float">
-                  <Play aria-hidden className="size-6 translate-x-0.5 fill-current" strokeWidth={0} />
-                </div>
-                <p className="mt-5 font-display text-xl">El trailer se está grabando</p>
-                <p className="mt-2 text-sm text-mist">
-                  Aparecerá aquí en cuanto el equipo lo publique.
-                </p>
-              </div>
-            </div>
+            <TrailerEmbed url={featuredTrailer} title={EVENT.name} />
           </Reveal>
         </section>
 
-        {/* ================= Registration (phase 2) ================= */}
+        {/* ================= Registration ================= */}
         <section id="register" className="mx-auto max-w-3xl scroll-mt-24 px-5 py-20">
           <Reveal>
             <div className="card relative overflow-hidden p-8 text-center sm:p-12">
@@ -157,13 +164,19 @@ export default function Home() {
                 Reserva tu <span className="gilded">cupo</span>
               </h2>
               <p className="mx-auto mt-4 max-w-md text-mist">
-                El formulario de registro se habilita en los próximos días. Serán{" "}
-                {EVENT.capacity} tickets y no habrá más.
+                {seatsFree > 0
+                  ? `Quedan ${seatsFree} de ${capacity} tickets. Cuando se acaben, se acabaron.`
+                  : "Los cupos están agotados, pero puedes anotarte en la lista de espera."}
               </p>
-              <div className="mt-8 inline-flex items-center gap-3 rounded-full border border-edge bg-night/60 px-5 py-2.5 text-sm text-mist">
-                <span className="size-2 rounded-full bg-gold animate-heartbeat" />
-                Registro próximamente
-              </div>
+              <Link
+                href="/register"
+                className="mt-8 inline-flex items-center gap-2.5 rounded-full bg-gold px-7 py-3.5 font-semibold text-midnight transition-transform duration-300 hover:scale-[1.04]"
+              >
+                <Ticket aria-hidden className="size-[1.25em]" strokeWidth={1.8} />
+                <span className="leading-none">
+                  {seatsFree > 0 ? "Obtener mi ticket" : "Anotarme en la lista"}
+                </span>
+              </Link>
             </div>
           </Reveal>
         </section>

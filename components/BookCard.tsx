@@ -1,5 +1,6 @@
-import { BookOpen } from "lucide-react";
+import { ArrowRight, BookOpen } from "lucide-react";
 import Image from "next/image";
+import Link from "next/link";
 import { ACCENTS, type Book } from "@/lib/site";
 
 /**
@@ -18,16 +19,17 @@ export default function BookCard({ book }: { book: Book }) {
   const accent = ACCENTS[book.accent];
 
   return (
-    <article className="group h-full [perspective:1400px]">
-      <div
+    <article className="group h-full perspective-[1400px]">
+      <Link
+        href={`/books/${book.slug}`}
         className={`card flex h-full flex-col p-5 transition-all duration-500 ease-out
           group-hover:-translate-y-2 ${accent.border} ${accent.glow}`}
       >
         {/* --- Cover --- */}
         <div
-          className="relative aspect-[2/3] w-full shrink-0 overflow-hidden rounded-(--radius-soft)
+          className="relative aspect-2/3 w-full shrink-0 overflow-hidden rounded-(--radius-soft)
             bg-ink shadow-xl shadow-black/40 transition-transform duration-500 ease-out
-            [transform-style:preserve-3d] group-hover:[transform:rotateX(6deg)_rotateY(-6deg)_scale(1.03)]"
+            transform-3d group-hover:transform-[rotateX(6deg)_rotateY(-6deg)_scale(1.03)]"
         >
           {book.cover ? (
             <Image
@@ -74,17 +76,27 @@ export default function BookCard({ book }: { book: Book }) {
             {book.title}
           </h3>
           <p className="mt-2 text-sm leading-relaxed text-mist">{book.synopsis}</p>
-          <p className="mt-auto pt-5 text-xs text-mist/70">
-            {book.presenter ? (
-              <>
-                Presenta: <span className="text-parchment/90">{book.presenter}</span>
-              </>
-            ) : (
-              "Expositor por confirmar"
-            )}
-          </p>
+          <div className="mt-auto flex items-center justify-between gap-3 pt-5">
+            <span className="text-xs text-mist/70">
+              {book.presenter ? (
+                <>
+                  Presenta: <span className="text-parchment/90">{book.presenter}</span>
+                </>
+              ) : (
+                "Expositor por confirmar"
+              )}
+            </span>
+            <span
+              aria-hidden
+              className={`inline-flex items-center gap-1 text-xs font-semibold ${accent.text}
+                transition-transform duration-300 group-hover:translate-x-1`}
+            >
+              Ver ficha
+              <ArrowRight className="size-[1.1em]" />
+            </span>
+          </div>
         </div>
-      </div>
+      </Link>
     </article>
   );
 }

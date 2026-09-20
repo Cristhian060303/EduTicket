@@ -52,6 +52,10 @@ create table if not exists attendees (
   session_id    uuid    not null references sessions (id) on delete cascade,
   seat_id       uuid    not null unique references seats (id),
   ticket_code   text    not null unique,
+  -- Random address of the ticket page. The readable code (ET-9B-14) is
+  -- guessable by counting, and these are minors' names, so the URL uses this
+  -- instead. 16 hex characters = 64 bits.
+  token         text    not null unique default encode(gen_random_bytes(8), 'hex'),
   created_at    timestamptz not null default now(),
   checked_in_at timestamptz            -- set when the QR is scanned at the door
 );
@@ -119,7 +123,12 @@ create table if not exists waitlist (
 -- only ever be handed out once.
 --
 -- Returns 0 rows when the session is full.
+--
+-- Dropped first so this file can also be re-run over an older version of the
+-- function: Postgres will not let CREATE OR REPLACE change a return type.
 -- ============================================================================
+drop function if exists claim_seat(uuid, text, text, grade_t, text);
+
 create or replace function claim_seat(
   p_session_id  uuid,
   p_first_names text,
@@ -127,20 +136,21 @@ create or replace function claim_seat(
   p_grade       grade_t,
   p_section     text
 )
-returns table (ticket text, seat_number integer, already_existed boolean)
+returns table (ticket text, token text, seat_number integer, already_existed boolean)
 language plpgsql
 as $$
 declare
   v_seat_id uuid;
   v_number  integer;
   v_ticket  text;
+  v_token   text;
   v_first   text := btrim(p_first_names);
   v_last    text := btrim(p_last_names);
   v_section text := upper(btrim(p_section));
 begin
   -- 1) Already registered? Hand back the very same ticket.
-  select a.ticket_code, s.number
-    into v_ticket, v_number
+  select a.ticket_code, a.token, s.number
+    into v_ticket, v_token, v_number
     from attendees a
     join seats s on s.id = a.seat_id
    where a.session_id = p_session_id
@@ -150,7 +160,7 @@ begin
      and a.section = v_section;
 
   if found then
-    return query select v_ticket, v_number, true;
+    return query select v_ticket, v_token, v_number, true;
     return;
   end if;
 
@@ -180,10 +190,12 @@ begin
               || '-'
               || lpad(v_number::text, 2, '0');
 
-  insert into attendees (first_names, last_names, grade, section, session_id, seat_id, ticket_code)
-  values (v_first, v_last, p_grade, v_section, p_session_id, v_seat_id, v_ticket);
+  v_token := encode(gen_random_bytes(8), 'hex');
 
-  return query select v_ticket, v_number, false;
+  insert into attendees (first_names, last_names, grade, section, session_id, seat_id, ticket_code, token)
+  values (v_first, v_last, p_grade, v_section, p_session_id, v_seat_id, v_ticket, v_token);
+
+  return query select v_ticket, v_token, v_number, false;
 end;
 $$;
 
