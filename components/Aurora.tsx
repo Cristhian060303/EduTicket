@@ -11,15 +11,19 @@ export default function Aurora() {
     <div aria-hidden className="pointer-events-none fixed inset-0 -z-10 overflow-hidden">
       <div className="absolute inset-0 bg-midnight" />
 
-      <div className="absolute -top-40 -left-32 size-136 rounded-full bg-abyss/25 blur-[120px] animate-drift" />
-      <div
-        className="absolute top-1/4 -right-40 size-152 rounded-full bg-gold/20 blur-[130px] animate-drift"
-        style={{ animationDelay: "-7s" }}
-      />
-      <div
-        className="absolute -bottom-52 left-1/3 size-128 rounded-full bg-magenta/15 blur-[120px] animate-drift"
-        style={{ animationDelay: "-14s" }}
-      />
+      {/* The whole field of light rises slightly as the page scrolls, slower
+          than the content: that difference in speed is what reads as depth. */}
+      <div className="parallax-back absolute inset-0">
+        <div className="absolute -top-40 -left-32 size-136 rounded-full bg-abyss/25 blur-[120px] animate-drift" />
+        <div
+          className="absolute top-1/4 -right-40 size-152 rounded-full bg-gold/20 blur-[130px] animate-drift"
+          style={{ animationDelay: "-7s" }}
+        />
+        <div
+          className="absolute -bottom-52 left-1/3 size-128 rounded-full bg-magenta/15 blur-[120px] animate-drift"
+          style={{ animationDelay: "-14s" }}
+        />
+      </div>
 
       {/* Vignette: darkens the edges and pulls the eye to the centre */}
       <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,transparent_35%,var(--color-midnight)_100%)]" />

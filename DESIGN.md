@@ -75,6 +75,32 @@ El movimiento aquí **cuenta algo**; no es decoración por sí sola.
 | `heartbeat` | Puntos de estado | Llama la atención sobre lo que está en vivo (cupos, registro) |
 | Inclinación 3D | Tarjetas de libro en hover | Hace que la portada se sienta un objeto, no una imagen |
 
+### Ligadas al scroll
+
+Este segundo grupo no se dispara y corre solo: avanza y retrocede con la posición del scroll, así que responde al dedo en vez de actuar por su cuenta.
+
+| Efecto | Dónde | Qué comunica |
+|--------|-------|--------------|
+| `progress-bar` | Línea bajo la barra superior | Cuánta página queda |
+| `parallax-back` | Manchas de luz del fondo | Suben más lento que el contenido: esa diferencia de velocidad es lo que se lee como profundidad |
+| `hero-exit` | Portada al salir de pantalla | La disuelve en vez de simplemente empujarla hacia arriba |
+| `cover-drift` | Portadas dentro de su tarjeta | Se deslizan levemente en su marco mientras la tarjeta cruza la pantalla |
+
+### El teatro del trailer
+
+Al presionar play, el video **se abre a pantalla completa**: la página se oscurece y se desenfoca (`curtain-in`) mientras el video escala hasta su sitio (`stage-in`). Al terminar, se cierra solo y devuelve al lector exactamente donde estaba.
+
+La pantalla completa se resuelve en dos capas, a propósito:
+
+1. **La capa que siempre funciona:** la superposición cubre la ventana por sí sola, con CSS.
+2. **La capa extra:** además se pide la API nativa de pantalla completa, y si el navegador la rechaza no pasa nada. Safari en iPhone la niega para cualquier elemento que no sea un `<video>`, y ahí la primera capa ya resolvió el efecto.
+
+Se cierra de cuatro maneras: al terminar el video, con la ✕, tocando fuera, o con Esc. Mientras está abierto, la página de atrás queda bloqueada para que no se desplace, y al cerrar el foco del teclado vuelve al botón que lo abrió.
+
+Están hechas con **animaciones CSS ligadas al scroll** (`animation-timeline`), no con JavaScript: no hay que sincronizar nada con un listener, y el navegador las ejecuta fuera del hilo principal, así que no compiten con el resto de la página.
+
+Cada una lleva sus propios candados: `@supports` para el navegador que aún no soporta la propiedad, y `prefers-reduced-motion: no-preference` para quien pidió menos movimiento. Si cualquiera de los dos falla, el efecto sencillamente no existe y la página se ve quieta y completa — las animaciones de aparición ya sostienen la experiencia por sí solas.
+
 ### Reglas
 
 1. **Nada dura más de 700 ms.** Las transiciones de interfaz van entre 300 y 500 ms con `cubic-bezier(0.22, 1, 0.36, 1)` (arranca rápido, frena suave).

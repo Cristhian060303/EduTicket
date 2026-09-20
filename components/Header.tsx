@@ -72,6 +72,13 @@ export default function Header() {
           <span className="leading-none">Obtener ticket</span>
         </a>
       </nav>
+
+      {/* Scroll progress: shows how much of the page is left, and it is pure
+          CSS — the browser drives it from the scroll position itself. */}
+      <div
+        aria-hidden
+        className="progress-bar h-0.5 w-full bg-linear-to-r from-gold via-magenta to-abyss"
+      />
     </header>
   );
 }

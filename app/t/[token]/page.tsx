@@ -9,7 +9,7 @@ import LoanRequest from "@/components/LoanRequest";
 import TicketActions from "@/components/TicketActions";
 import TicketStub from "@/components/TicketStub";
 import { isAdmin } from "@/lib/auth";
-import { getBooks, getLoansForTicket, getTicket } from "@/lib/db";
+import { getBookAvailability, getBooks, getLoansForTicket, getTicket } from "@/lib/db";
 
 type Params = { params: Promise<{ token: string }> };
 
@@ -47,11 +47,12 @@ export default async function TicketPage({ params }: Params) {
 
   if (!ticket) notFound();
 
-  const [url, team, books, loans] = await Promise.all([
+  const [url, team, books, loans, availability] = await Promise.all([
     ticketUrl(ticket.token),
     isAdmin(),
     getBooks(),
     getLoansForTicket(ticket.token),
+    getBookAvailability(),
   ]);
 
   // Generated on the server so the QR is already in the HTML: it shows up
@@ -105,6 +106,7 @@ export default async function TicketPage({ params }: Params) {
           token={ticket.token}
           books={books}
           alreadyRequested={loans.map((loan) => loan.book.slug)}
+          availability={availability}
         />
 
         <p className="no-print mt-8 text-center text-xs break-all text-mist/70">{url}</p>

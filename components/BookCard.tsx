@@ -32,13 +32,26 @@ export default function BookCard({ book }: { book: Book }) {
             transform-3d group-hover:transform-[rotateX(6deg)_rotateY(-6deg)_scale(1.03)]"
         >
           {book.cover ? (
-            <Image
-              src={book.cover}
-              alt={`Portada de ${book.title}`}
-              fill
-              sizes="(max-width: 768px) 90vw, 30vw"
-              className="object-cover"
-            />
+            /* Blurred copy behind, whole cover in front: book jackets come in
+               every proportion, and cropping them to a fixed ratio eats the
+               title. This way nothing is cut and the cards stay uniform. */
+            <>
+              <Image
+                src={book.cover}
+                alt=""
+                aria-hidden
+                fill
+                sizes="(max-width: 768px) 90vw, 30vw"
+                className="scale-110 object-cover opacity-40 blur-xl"
+              />
+              <Image
+                src={book.cover}
+                alt={`Portada de ${book.title}`}
+                fill
+                sizes="(max-width: 768px) 90vw, 30vw"
+                className="cover-drift object-contain"
+              />
+            </>
           ) : (
             <div className="flex h-full flex-col items-center justify-center gap-4 p-6 text-center">
               <BookOpen

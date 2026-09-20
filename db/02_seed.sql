@@ -50,10 +50,10 @@ values
   ),
   (
     'enciclopedia-dinosaurios',
-    'Enciclopedia de dinosaurios',
-    'Edición por confirmar',
+    'Enciclopedia de los dinosaurios',
+    'Ediciones Saldaña',
     'Ciento sesenta millones de años de historia en un solo volumen: desde el Triásico hasta el asteroide que lo cambió todo, con las criaturas que dominaron el planeta mucho antes que nosotros.',
-    null,
+    '/covers/enciclopedia-dinosaurios.jpg',
     'magenta',
     3,
     1

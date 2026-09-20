@@ -55,14 +55,25 @@ export default async function BookPage({ params }: Params) {
           <Reveal>
             <div className="relative aspect-[2/3] overflow-hidden rounded-(--radius-card) bg-ink shadow-2xl shadow-black/50">
               {book.cover ? (
-                <Image
-                  src={book.cover}
-                  alt={`Portada de ${book.title}`}
-                  fill
-                  sizes="(max-width: 768px) 90vw, 320px"
-                  className="object-cover"
-                  priority
-                />
+                /* Blurred backdrop + whole cover, so no jacket gets cropped */
+                <>
+                  <Image
+                    src={book.cover}
+                    alt=""
+                    aria-hidden
+                    fill
+                    sizes="(max-width: 768px) 90vw, 320px"
+                    className="scale-110 object-cover opacity-40 blur-xl"
+                  />
+                  <Image
+                    src={book.cover}
+                    alt={`Portada de ${book.title}`}
+                    fill
+                    sizes="(max-width: 768px) 90vw, 320px"
+                    className="object-contain"
+                    priority
+                  />
+                </>
               ) : (
                 <div className="flex h-full items-center justify-center">
                   <BookOpen aria-hidden className={`size-16 ${accent.text} opacity-60`} />

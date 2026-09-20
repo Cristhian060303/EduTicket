@@ -8,17 +8,28 @@ import type { Book } from "@/lib/site";
 /**
  * "I'd like to borrow this one", from the student's own ticket.
  *
- * Asking twice is harmless: the database keys a loan by (attendee, book), so
- * a second request is ignored rather than duplicated.
+ * A student may request one book, two, or all three: the database keys a loan
+ * by (attendee, book), so each title can be asked for once and asking twice
+ * is ignored rather than duplicated.
+ *
+ * There is usually a single physical copy of each title, so requests beyond
+ * that are not blocked — books come back, and a queue is how the team knows
+ * who is next — but the real numbers are shown, so nobody walks away
+ * expecting a book that is already spoken for.
  */
+
+export type Availability = Record<string, { copies: number; claimed: number }>;
+
 export default function LoanRequest({
   token,
   books,
   alreadyRequested,
+  availability,
 }: {
   token: string;
   books: Book[];
   alreadyRequested: string[];
+  availability: Availability;
 }) {
   const [requested, setRequested] = useState<string[]>(alreadyRequested);
   const [busy, setBusy] = useState<string | null>(null);
@@ -37,13 +48,15 @@ export default function LoanRequest({
     <section className="no-print mt-10">
       <h2 className="font-display text-2xl">¿Te llevas un libro?</h2>
       <p className="mt-2 text-sm text-mist">
-        Al terminar las presentaciones puedes pedir prestado el que te haya atrapado. Solicítalo
-        aquí y retíralo con el equipo.
+        Al terminar las presentaciones puedes pedir prestados los que te hayan atrapado —
+        uno, dos o los tres. Solicítalos aquí y retíralos con el equipo.
       </p>
 
       <ul className="mt-5 space-y-3">
         {books.map((book) => {
           const done = requested.includes(book.slug);
+          const stock = availability[book.slug] ?? { copies: 1, claimed: 0 };
+          const free = stock.copies - stock.claimed;
 
           return (
             <li
@@ -53,6 +66,19 @@ export default function LoanRequest({
               <div className="min-w-0">
                 <p className="font-display text-lg text-parchment">{book.title}</p>
                 <p className="text-sm text-mist">{book.author}</p>
+
+                {!done &&
+                  (free > 0 ? (
+                    <p className="mt-1 text-xs text-abyss">
+                      Disponible · {free} {free === 1 ? "ejemplar" : "ejemplares"}
+                    </p>
+                  ) : (
+                    <p className="mt-1 text-xs text-gold">
+                      Ya lo pidieron {stock.claimed}{" "}
+                      {stock.claimed === 1 ? "persona" : "personas"}. Puedes anotarte y
+                      esperar a que lo devuelvan.
+                    </p>
+                  ))}
               </div>
 
               {done ? (
@@ -72,7 +98,9 @@ export default function LoanRequest({
                   ) : (
                     <BookMarked aria-hidden className="size-[1.15em]" />
                   )}
-                  <span className="leading-none">Pedir prestado</span>
+                  <span className="leading-none">
+                    {free > 0 ? "Pedir prestado" : "Anotarme en la fila"}
+                  </span>
                 </button>
               )}
             </li>

@@ -24,6 +24,13 @@ export const EVENT = {
    */
   timeZone: "America/Guayaquil",
   capacity: 30,
+  /**
+   * General book trailer, served by this site rather than YouTube: at 4 MB it
+   * costs less than the embed's scripts, and it still plays if the school
+   * network blocks YouTube.
+   */
+  trailer: "/trailers/storybook-general.mp4",
+  trailerPoster: "/trailers/storybook-general.jpg",
   grades: ["8vo", "9no", "10mo"] as const,
   sections: ["A", "B", "C", "D"] as const,
 } as const;
@@ -68,9 +75,9 @@ export const BOOKS: Book[] = [
   },
   {
     slug: "enciclopedia-dinosaurios",
-    title: "Enciclopedia de dinosaurios",
-    author: "Edición por confirmar",
-    cover: null,
+    title: "Enciclopedia de los dinosaurios",
+    author: "Ediciones Saldaña",
+    cover: "/covers/enciclopedia-dinosaurios.jpg",
     synopsis:
       "Ciento sesenta millones de años de historia en un solo volumen: desde el Triásico hasta el asteroide que lo cambió todo, con las criaturas que dominaron el planeta mucho antes que nosotros.",
     presenter: null,

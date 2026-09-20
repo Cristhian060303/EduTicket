@@ -344,7 +344,7 @@ export async function listLoans(): Promise<LoanRow[]> {
   const { data, error } = await supabaseAdmin()
     .from("loans")
     .select("id, status, requested_at, attendees(first_names, last_names, grade, section), books(title, slug)")
-    .order("requested_at", { ascending: false });
+    .order("requested_at");  // first come, first served at the delivery table
 
   if (error || !data) return [];
 
@@ -477,4 +477,38 @@ export async function joinWaitlist(input: {
   });
 
   return !error;
+}
+
+/**
+ * How many copies each book has and how many are already spoken for.
+ *
+ * There is normally a single physical copy of each title, and nothing stops
+ * thirty students from requesting the same one. Rather than blocking them —
+ * a queue is useful, because books do come back — the request screen shows
+ * the real numbers so nobody expects a book that is already taken.
+ */
+export async function getBookAvailability(): Promise<
+  Record<string, { copies: number; claimed: number }>
+> {
+  if (!hasSupabase()) return {};
+
+  const db = supabaseAdmin();
+  const [{ data: books }, { data: loans }] = await Promise.all([
+    db.from("books").select("id, slug, copies"),
+    db.from("loans").select("book_id").neq("status", "returned"),
+  ]);
+
+  if (!books) return {};
+
+  const claimedByBook = new Map<string, number>();
+  for (const loan of loans ?? []) {
+    claimedByBook.set(loan.book_id, (claimedByBook.get(loan.book_id) ?? 0) + 1);
+  }
+
+  return Object.fromEntries(
+    books.map((book) => [
+      book.slug,
+      { copies: book.copies ?? 1, claimed: claimedByBook.get(book.id) ?? 0 },
+    ]),
+  );
 }

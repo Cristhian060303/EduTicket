@@ -36,8 +36,8 @@ export default async function Home() {
   const seatsFree = session?.seatsFree ?? EVENT.capacity;
   const capacity = session?.capacity ?? EVENT.capacity;
 
-  // The event trailer is the first one the team publishes.
-  const featuredTrailer = books.find((book) => book.trailer)?.trailer ?? null;
+  // The event's own trailer, falling back to the first one a book has.
+  const featuredTrailer = EVENT.trailer ?? books.find((book) => book.trailer)?.trailer ?? null;
 
   return (
     <>
@@ -47,7 +47,7 @@ export default async function Home() {
 
       <main id="top">
         {/* ================= Hero ================= */}
-        <section className="mx-auto max-w-6xl px-5 pt-28 pb-24 sm:pt-36">
+        <section className="hero-exit mx-auto max-w-6xl px-5 pt-28 pb-24 sm:pt-36">
           <Reveal className="inline-flex items-center gap-2 rounded-full border border-edge bg-night/60 px-4 py-1.5 text-xs tracking-wide text-mist">
             <span className="size-2 rounded-full bg-abyss animate-heartbeat" />
             {EVENT.dateLong} · {EVENT.venue}
@@ -144,11 +144,11 @@ export default async function Home() {
         <section id="trailer" className="mx-auto max-w-5xl scroll-mt-24 px-5 py-20">
           <Reveal>
             <p className="text-xs tracking-[0.2em] text-magenta uppercase">Book trailer</p>
-            <h2 className="mt-3 font-display text-3xl sm:text-4xl">Un minuto para decidirte</h2>
+            <h2 className="mt-3 font-display text-3xl sm:text-4xl">Un vistazo a lo que te espera</h2>
           </Reveal>
 
           <Reveal delay={150} className="mt-8">
-            <TrailerEmbed url={featuredTrailer} title={EVENT.name} />
+            <TrailerEmbed url={featuredTrailer} title={EVENT.name} poster={EVENT.trailerPoster} />
           </Reveal>
         </section>
 

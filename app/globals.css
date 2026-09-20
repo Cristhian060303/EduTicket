@@ -36,6 +36,12 @@
   --animate-float: float 6s ease-in-out infinite;
   --animate-shimmer: shimmer 2.5s ease-in-out infinite;
   --animate-heartbeat: heartbeat 2.4s ease-out infinite;
+
+  /* Trailer theatre: in and out */
+  --animate-curtain-in: curtain-in 0.28s ease-out both;
+  --animate-curtain-out: curtain-out 0.22s ease-in both;
+  --animate-stage-in: stage-in 0.42s cubic-bezier(0.22, 1, 0.36, 1) both;
+  --animate-stage-out: stage-out 0.22s ease-in both;
 }
 
 @keyframes drift {
@@ -79,6 +85,46 @@
   }
   100% {
     box-shadow: 0 0 0 0 transparent;
+  }
+}
+
+@keyframes curtain-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes curtain-out {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}
+
+@keyframes stage-in {
+  from {
+    opacity: 0;
+    transform: scale(0.9) translateY(18px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes stage-out {
+  from {
+    opacity: 1;
+    transform: none;
+  }
+  to {
+    opacity: 0;
+    transform: scale(0.96);
   }
 }
 
@@ -188,6 +234,100 @@ body {
 [data-reveal][data-visible="true"] {
   animation: reveal 0.7s cubic-bezier(0.22, 1, 0.36, 1) forwards;
   animation-delay: var(--reveal-delay, 0ms);
+}
+
+/* ============================================================
+   Scroll-linked motion
+   
+   These follow the scroll position itself instead of firing on a timer, so
+   they track the finger rather than playing at it. They use CSS scroll-driven
+   animations: no JavaScript, nothing to keep in sync with a scroll listener,
+   and the browser runs them off the main thread.
+   
+   Everything sits behind @supports, so a browser without the feature simply
+   shows the page still — the reveal animations in [data-reveal] already carry
+   the experience on their own.
+   ============================================================ */
+
+@keyframes scroll-progress {
+  from {
+    transform: scaleX(0);
+  }
+  to {
+    transform: scaleX(1);
+  }
+}
+
+@keyframes parallax-rise {
+  to {
+    transform: translateY(-12%);
+  }
+}
+
+@keyframes hero-depart {
+  to {
+    opacity: 0;
+    transform: translateY(-40px) scale(0.98);
+  }
+}
+
+@keyframes cover-shift {
+  from {
+    transform: translateY(3%) scale(1.06);
+  }
+  to {
+    transform: translateY(-3%) scale(1.06);
+  }
+}
+
+/* Each utility carries its own guards: @utility has to stay top level in
+   Tailwind, so the feature test and the motion preference are nested inside
+   the declaration instead of wrapped around it. */
+
+/* Thin line under the header showing how much page is left */
+@utility progress-bar {
+  transform-origin: 0 50%;
+  transform: scaleX(0);
+
+  @supports (animation-timeline: scroll()) {
+    @media (prefers-reduced-motion: no-preference) {
+      animation: scroll-progress linear both;
+      animation-timeline: scroll(root block);
+    }
+  }
+}
+
+/* The pools of light rise more slowly than the content, which is what gives
+   the page its sense of depth */
+@utility parallax-back {
+  @supports (animation-timeline: scroll()) {
+    @media (prefers-reduced-motion: no-preference) {
+      animation: parallax-rise linear both;
+      animation-timeline: scroll(root block);
+    }
+  }
+}
+
+/* The hero dissolves as it leaves instead of just scrolling off */
+@utility hero-exit {
+  @supports (animation-timeline: view()) {
+    @media (prefers-reduced-motion: no-preference) {
+      animation: hero-depart linear both;
+      animation-timeline: view();
+      animation-range: exit -10% exit 80%;
+    }
+  }
+}
+
+/* Covers glide inside their frame as the card crosses the screen */
+@utility cover-drift {
+  @supports (animation-timeline: view()) {
+    @media (prefers-reduced-motion: no-preference) {
+      animation: cover-shift linear both;
+      animation-timeline: view();
+      animation-range: entry 10% exit 90%;
+    }
+  }
 }
 
 /* ============================================================
