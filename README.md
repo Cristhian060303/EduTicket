@@ -142,7 +142,7 @@ Está en **`/admin`** y se entra con el PIN de `ADMIN_PIN`. La sesión dura 12 h
 
 **Cómo marcar ingresos el día del evento**, de más rápido a más lento:
 
-1. **Escáner del panel** (`/admin/door` → *Encender cámara*): la cámara queda abierta y registra un ticket tras otro sin salir de la página. El recuadro cambia de color en cada lectura y el resultado sale en grande. Solo suena un aviso si el ticket ya había ingresado o no existe, y se puede silenciar.
+1. **Escáner del panel** (`/admin/door` → *Encender cámara*): lee el ticket, apaga la cámara y muestra el resultado en grande, con opción de deshacer. *Escanear el siguiente* borra el aviso y vuelve a encenderla. Solo suena una alerta si el ticket ya había ingresado o no existe, y se puede silenciar con el botón de la esquina.
 2. **Cámara normal del celular**: abre el ticket del estudiante y, si ese teléfono tiene sesión de equipo, muestra el botón de ingreso.
 3. **Búsqueda por nombre o código**, para cuando el QR no se deja leer.
 

@@ -6,33 +6,37 @@ import {
   Check,
   CircleAlert,
   Loader2,
+  RotateCcw,
   TriangleAlert,
   Volume2,
   VolumeX,
 } from "lucide-react";
 import jsQR from "jsqr";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { checkInAction } from "@/app/admin/actions";
+import { checkInAction, undoCheckInAction } from "@/app/admin/actions";
 import { EVENT } from "@/lib/site";
 
 /**
- * Continuous QR scanner for the door.
+ * Door scanner.
  *
- * One camera stays open and every ticket is checked in without leaving the
- * page — with thirty students queuing, opening a tab per person is the slow
- * part, not the scanning.
+ * One person at a time, on purpose: the camera reads a ticket, switches off
+ * and shows the result on its own. Turning the camera back on for the next
+ * student clears it. That extra tap buys a moment where the organiser and the
+ * person in front of them see the same confirmation — better at a door than a
+ * list of results scrolling past.
  *
- * Decoding happens entirely in the browser (jsQR over canvas frames): no
- * image ever leaves the phone. The camera is only requested after a tap,
- * because iOS requires a user gesture and because asking on page load, for a
- * page the team opens all afternoon, is rude.
+ * Decoding happens entirely in the browser (jsQR over canvas frames), so no
+ * image ever leaves the phone.
  */
 
-type Outcome = {
-  id: number;
-  tone: "ok" | "warn" | "bad";
+type Tone = "ok" | "warn" | "bad";
+
+type Result = {
+  tone: Tone;
   title: string;
   detail: string;
+  /** Present only when the check-in can still be undone */
+  token?: string;
 };
 
 /** Accepts a full ticket URL or a bare token. */
@@ -47,9 +51,7 @@ function tokenFrom(text: string): string | null {
  * A short alert tone, played ONLY when something needs a second look.
  *
  * A successful check-in stays silent: this is a literary event with talks
- * going on, and a beep per student would be thirty beeps of pure noise. The
- * sound is reserved for the two cases where the organiser has to stop and
- * look up — a ticket already used, or one that does not exist.
+ * going on, and a beep per student would be thirty beeps of pure noise.
  */
 function alertTone() {
   try {
@@ -72,24 +74,36 @@ function alertTone() {
   }
 }
 
+const TONES: Record<Tone, { box: string; icon: React.ReactNode }> = {
+  ok: {
+    box: "border-abyss/50 bg-abyss/10",
+    icon: <Check aria-hidden className="size-7 shrink-0 text-abyss" />,
+  },
+  warn: {
+    box: "border-gold/50 bg-gold/10",
+    icon: <TriangleAlert aria-hidden className="size-7 shrink-0 text-gold" />,
+  },
+  bad: {
+    box: "border-magenta/50 bg-magenta/10",
+    icon: <CircleAlert aria-hidden className="size-7 shrink-0 text-magenta" />,
+  },
+};
+
 export default function QrScanner() {
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const frameRef = useRef<number | null>(null);
-  /** Tokens already handled recently, so one QR in view is not read 30 times */
-  const seenRef = useRef<Map<string, number>>(new Map());
   const busyRef = useRef(false);
+  const mutedRef = useRef(false);
 
   const [scanning, setScanning] = useState(false);
   const [starting, setStarting] = useState(false);
   const [problem, setProblem] = useState<string | null>(null);
-  const [outcomes, setOutcomes] = useState<Outcome[]>([]);
+  const [result, setResult] = useState<Result | null>(null);
+  const [undoing, setUndoing] = useState(false);
   const [muted, setMuted] = useState(false);
-  /** Colours the aiming frame for a moment after each read */
-  const [flash, setFlash] = useState<Outcome["tone"] | null>(null);
 
-  const mutedRef = useRef(false);
   mutedRef.current = muted;
 
   // Remember the choice per phone: whoever mans the door prefers one way.
@@ -113,61 +127,7 @@ export default function QrScanner() {
     });
   };
 
-  const handleToken = useCallback(async (token: string) => {
-    const now = Date.now();
-    const last = seenRef.current.get(token);
-    if (busyRef.current || (last && now - last < 6000)) return;
-
-    busyRef.current = true;
-    seenRef.current.set(token, now);
-
-    const result = await checkInAction(token);
-    const at = (iso: string | null) =>
-      iso
-        ? new Date(iso).toLocaleTimeString("es-EC", {
-            hour: "2-digit",
-            minute: "2-digit",
-            timeZone: EVENT.timeZone,
-          })
-        : "";
-
-    let outcome: Outcome;
-    if (result.status === "ok" && !result.alreadyIn) {
-      outcome = { id: now, tone: "ok", title: result.name, detail: "Ingreso registrado" };
-    } else if (result.status === "ok") {
-      outcome = {
-        id: now,
-        tone: "warn",
-        title: result.name,
-        detail: `Este ticket ya ingresó a las ${at(result.since)}. Verifica quién lo está mostrando.`,
-      };
-    } else if (result.status === "not-found") {
-      outcome = {
-        id: now,
-        tone: "bad",
-        title: "Ticket desconocido",
-        detail: "Ese QR no corresponde a ningún registro.",
-      };
-    } else {
-      outcome = {
-        id: now,
-        tone: "bad",
-        title: "No se pudo registrar",
-        detail: "Revisa la conexión e inténtalo otra vez.",
-      };
-    }
-
-    // Silent when everything is fine; audible only when it is not.
-    if (outcome.tone !== "ok" && !mutedRef.current) alertTone();
-
-    setFlash(outcome.tone);
-    setTimeout(() => setFlash(null), 1200);
-
-    setOutcomes((current) => [outcome, ...current].slice(0, 6));
-    busyRef.current = false;
-  }, []);
-
-  const stop = useCallback(() => {
+  const stopCamera = useCallback(() => {
     if (frameRef.current) cancelAnimationFrame(frameRef.current);
     frameRef.current = null;
     streamRef.current?.getTracks().forEach((track) => track.stop());
@@ -175,8 +135,59 @@ export default function QrScanner() {
     setScanning(false);
   }, []);
 
-  const start = useCallback(async () => {
+  const handleToken = useCallback(
+    async (token: string) => {
+      if (busyRef.current) return;
+      busyRef.current = true;
+
+      // Switch the camera off first: the reading is done and the result is
+      // what matters now.
+      stopCamera();
+
+      const outcome = await checkInAction(token);
+      const at = (iso: string | null) =>
+        iso
+          ? new Date(iso).toLocaleTimeString("es-EC", {
+              hour: "2-digit",
+              minute: "2-digit",
+              timeZone: EVENT.timeZone,
+            })
+          : "";
+
+      let next: Result;
+      if (outcome.status === "ok" && !outcome.alreadyIn) {
+        next = { tone: "ok", title: outcome.name, detail: "Ingreso registrado", token };
+      } else if (outcome.status === "ok") {
+        next = {
+          tone: "warn",
+          title: outcome.name,
+          detail: `Este ticket ya había ingresado a las ${at(outcome.since)}. Verifica quién lo está mostrando.`,
+        };
+      } else if (outcome.status === "not-found") {
+        next = {
+          tone: "bad",
+          title: "Ticket desconocido",
+          detail: "Ese QR no corresponde a ningún registro.",
+        };
+      } else {
+        next = {
+          tone: "bad",
+          title: "No se pudo registrar",
+          detail: "Revisa la conexión e inténtalo otra vez.",
+        };
+      }
+
+      if (next.tone !== "ok" && !mutedRef.current) alertTone();
+
+      setResult(next);
+      busyRef.current = false;
+    },
+    [stopCamera],
+  );
+
+  const startCamera = useCallback(async () => {
     setProblem(null);
+    setResult(null); // turning the camera back on clears the previous result
     setStarting(true);
 
     if (!window.isSecureContext) {
@@ -240,107 +251,99 @@ export default function QrScanner() {
     }
   }, [handleToken]);
 
+  const undo = async () => {
+    if (!result?.token) return;
+    setUndoing(true);
+    await undoCheckInAction(result.token);
+    setUndoing(false);
+    setResult({
+      tone: "bad",
+      title: result.title,
+      detail: "Ingreso deshecho. Esta persona vuelve a figurar como no ingresada.",
+    });
+  };
+
   // Release the camera when leaving the page: a light left on in a pocket is
   // both a battery drain and a privacy problem.
-  useEffect(() => stop, [stop]);
-
-  const tones = {
-    ok: "border-abyss/50 bg-abyss/10",
-    warn: "border-gold/50 bg-gold/10",
-    bad: "border-magenta/50 bg-magenta/10",
-  };
-  const icons = {
-    ok: <Check aria-hidden className="size-5 shrink-0 text-abyss" />,
-    warn: <TriangleAlert aria-hidden className="size-5 shrink-0 text-gold" />,
-    bad: <CircleAlert aria-hidden className="size-5 shrink-0 text-magenta" />,
-  };
+  useEffect(() => stopCamera, [stopCamera]);
 
   return (
     <div className="space-y-4">
-      <div className="card relative overflow-hidden">
+      <div className="card overflow-hidden">
+        {/* Viewfinder */}
         <div className="relative aspect-4/3 bg-black sm:aspect-video">
           <video
             ref={videoRef}
             playsInline
             muted
-            className={`size-full object-cover ${scanning ? "" : "opacity-0"}`}
+            className={`size-full object-cover ${scanning ? "" : "invisible"}`}
           />
 
-          {/* Aiming frame. It changes colour on each read, so the result is
-              visible without looking away from where the QR is being held. */}
-          {scanning && (
+          {scanning ? (
             <div
               aria-hidden
               className="pointer-events-none absolute inset-0 grid place-items-center"
             >
-              <div
-                className={`size-48 rounded-card border-4 shadow-[0_0_0_9999px_rgba(6,10,22,0.55)] transition-colors duration-200 ${
-                  flash === "ok"
-                    ? "border-abyss"
-                    : flash === "warn"
-                      ? "border-gold"
-                      : flash === "bad"
-                        ? "border-magenta"
-                        : "border-parchment/40"
-                }`}
-              />
+              <div className="size-48 rounded-card border-4 border-parchment/50 shadow-[0_0_0_9999px_rgba(6,10,22,0.55)]" />
             </div>
-          )}
-
-          {!scanning && (
+          ) : (
             <div className="absolute inset-0 grid place-items-center p-6 text-center">
               <div>
-                <Camera aria-hidden className="mx-auto size-10 text-mist" />
+                <Camera aria-hidden className="mx-auto size-10 text-mist/70" />
                 <p className="mt-3 text-sm text-mist">
-                  La cámara se enciende solo cuando tú lo pidas.
+                  {result ? "Listo para el siguiente" : "La cámara está apagada"}
                 </p>
               </div>
             </div>
           )}
-        </div>
 
-        <div className="flex flex-wrap items-center justify-between gap-3 border-t border-edge/60 px-5 py-4">
-          <p className="text-sm text-mist">
-            {scanning ? "Escaneando… acerca el QR al recuadro" : "Cámara apagada"}
-          </p>
-
+          {/* Mute lives in the corner: it is set once, not per student */}
           <button
             type="button"
             onClick={toggleMute}
             aria-pressed={muted}
-            className="inline-flex items-center gap-2 rounded-full border border-edge px-4 py-2 text-xs text-mist transition-colors hover:text-parchment"
-            title="El sonido sólo avisa cuando un ticket ya ingresó o no existe"
+            title={
+              muted
+                ? "Activar el aviso sonoro de tickets repetidos"
+                : "Silenciar el aviso sonoro"
+            }
+            className="absolute top-3 right-3 grid size-10 place-items-center rounded-full bg-midnight/70 text-mist backdrop-blur transition-colors hover:text-parchment"
           >
             {muted ? (
-              <VolumeX aria-hidden className="size-[1.15em]" />
+              <VolumeX aria-hidden className="size-5" />
             ) : (
-              <Volume2 aria-hidden className="size-[1.15em]" />
+              <Volume2 aria-hidden className="size-5" />
             )}
-            <span className="leading-none">{muted ? "Sin sonido" : "Avisos con sonido"}</span>
+            <span className="sr-only">{muted ? "Sonido desactivado" : "Sonido activado"}</span>
           </button>
+        </div>
 
+        {/* One full-width action: nothing to aim at with a queue in front */}
+        <div className="border-t border-edge/60 p-4">
           {scanning ? (
             <button
               type="button"
-              onClick={stop}
-              className="inline-flex items-center gap-2 rounded-full border border-edge px-5 py-2.5 text-sm font-semibold text-parchment transition-colors hover:border-magenta/50 hover:text-magenta"
+              onClick={stopCamera}
+              className="inline-flex w-full items-center justify-center gap-2 rounded-full border border-edge px-6 py-3.5 font-semibold text-parchment transition-colors hover:border-magenta/50 hover:text-magenta"
             >
-              <CameraOff aria-hidden className="size-[1.15em]" />
-              <span className="leading-none">Apagar</span>
+              <CameraOff aria-hidden className="size-[1.25em]" />
+              <span className="leading-none">Apagar cámara</span>
             </button>
           ) : (
             <button
               type="button"
-              onClick={start}
+              onClick={startCamera}
               disabled={starting}
-              className="inline-flex items-center gap-2 rounded-full bg-gold px-6 py-2.5 text-sm font-semibold text-midnight transition-transform hover:scale-[1.03] disabled:opacity-60"
+              className="inline-flex w-full items-center justify-center gap-2 rounded-full bg-gold px-6 py-3.5 font-semibold text-midnight transition-transform hover:scale-[1.02] disabled:opacity-60"
             >
               {starting ? (
-                <Loader2 aria-hidden className="size-[1.15em] animate-spin" />
+                <Loader2 aria-hidden className="size-[1.25em] animate-spin" />
               ) : (
-                <Camera aria-hidden className="size-[1.15em]" />
+                <Camera aria-hidden className="size-[1.25em]" />
               )}
-              <span className="leading-none">Encender cámara</span>
+              <span className="leading-none">
+                {result ? "Escanear el siguiente" : "Encender cámara"}
+              </span>
             </button>
           )}
         </div>
@@ -352,34 +355,36 @@ export default function QrScanner() {
         <p className="card border-magenta/40 p-4 text-sm text-parchment">{problem}</p>
       )}
 
-      {/* Newest first and deliberately large: the screen is the main channel,
-          readable at arm's length while the phone points at the next ticket. */}
-      <ul className="space-y-2" aria-live="assertive">
-        {outcomes.map((outcome, index) => {
-          const latest = index === 0;
+      {result && (
+        <div
+          className={`flex items-start gap-4 rounded-card border p-5 ${TONES[result.tone].box}`}
+          aria-live="assertive"
+        >
+          {TONES[result.tone].icon}
+          <div className="min-w-0 flex-1">
+            <p className="font-display text-2xl leading-tight text-parchment">
+              {result.title}
+            </p>
+            <p className="mt-1 text-base text-mist">{result.detail}</p>
 
-          return (
-            <li
-              key={outcome.id}
-              className={`flex items-start gap-3 rounded-card border ${tones[outcome.tone]} ${
-                latest ? "p-5" : "p-3 opacity-55"
-              }`}
-            >
-              <span className={latest ? "mt-0.5 scale-125" : ""}>{icons[outcome.tone]}</span>
-              <div className="min-w-0">
-                <p
-                  className={`font-display text-parchment ${latest ? "text-2xl leading-tight" : "text-base"}`}
-                >
-                  {outcome.title}
-                </p>
-                <p className={`text-mist ${latest ? "mt-1 text-base" : "text-sm"}`}>
-                  {outcome.detail}
-                </p>
-              </div>
-            </li>
-          );
-        })}
-      </ul>
+            {result.token && (
+              <button
+                type="button"
+                onClick={undo}
+                disabled={undoing}
+                className="mt-3 inline-flex items-center gap-2 text-sm text-mist underline underline-offset-4 transition-colors hover:text-parchment disabled:opacity-60"
+              >
+                {undoing ? (
+                  <Loader2 aria-hidden className="size-[1.15em] animate-spin" />
+                ) : (
+                  <RotateCcw aria-hidden className="size-[1.15em]" />
+                )}
+                <span>Deshacer, me equivoqué de persona</span>
+              </button>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
