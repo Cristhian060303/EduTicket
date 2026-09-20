@@ -72,8 +72,13 @@ Abre <http://localhost:3000>.
 ```
 EduTicket/
 ├─ app/                 Páginas (App Router de Next.js)
-│  ├─ layout.tsx        Tipografías y metadatos del sitio
 │  ├─ page.tsx          Portada
+│  ├─ register/         Formulario de registro
+│  ├─ t/[token]/        Ticket digital con QR
+│  ├─ books/[slug]/     Ficha de cada libro
+│  ├─ admin/            Panel del equipo (protegido con PIN)
+│  ├─ api/health/       Diagnóstico de configuración
+│  ├─ layout.tsx        Tipografías y metadatos del sitio
 │  └─ globals.css       Sistema de diseño: colores, animaciones, utilidades
 ├─ components/          Piezas reutilizables de interfaz
 │  ├─ Aurora.tsx        Fondo animado
@@ -96,12 +101,12 @@ EduTicket/
 
 | Fase | Estado |
 |------|--------|
-| 0 · Definiciones | 🟡 Faltan expositores, sinopsis definitivas y portada de dinosaurios |
-| 1 · Base técnica | ✅ Proyecto, diseño base, portada y esquema SQL |
-| 2 · Flujo del asistente | ⬜ Registro, cupos y ticket con QR |
-| 3 · Panel del equipo | ⬜ Asistentes, puerta y préstamos |
-| 4 · Pulido y ensayo | ⬜ |
-| 5 · Cierre | ⬜ |
+| 0 · Definiciones | 🟡 Faltan expositores, hora de inicio y portada de dinosaurios |
+| 1 · Base técnica | ✅ Proyecto, diseño, esquema SQL y despliegue |
+| 2 · Flujo del asistente | ✅ Registro, cupos, ticket con QR y fichas de libro |
+| 3 · Panel del equipo | ✅ Asistentes, puerta, préstamos y editor de libros |
+| 4 · Pulido y ensayo | ⬜ Simulacro completo antes del 16 de octubre |
+| 5 · Cierre | ⬜ Informe y borrado de datos |
 
 ---
 
@@ -120,6 +125,30 @@ Formato del commit: `tipo(alcance): descripción en minúsculas`, por ejemplo
 Tipos usados: `feat`, `fix`, `refactor`, `style`, `docs`, `chore`.
 
 > ⚠️ **No edites archivos con reemplazos de texto desde PowerShell.** `Get-Content` los lee como ANSI y destruye los acentos (`Regístrate` → `RegÃ­strate`). Usa el editor.
+
+---
+
+## El panel del equipo
+
+Está en **`/admin`** y se entra con el PIN de `ADMIN_PIN`. La sesión dura 12 horas.
+
+| Pantalla | Para qué |
+|---|---|
+| Resumen | Registrados, ingresos, cupos libres y préstamos |
+| Puerta | Escáner QR continuo + búsqueda por nombre o código |
+| Asistentes | Lista completa, búsqueda y descarga en CSV |
+| Préstamos | Solicitado → entregado → devuelto |
+| Libros | Expositor, book trailer y ejemplares disponibles |
+
+**Cómo marcar ingresos el día del evento**, de más rápido a más lento:
+
+1. **Escáner del panel** (`/admin/door` → *Encender cámara*): la cámara queda abierta y registra un ticket tras otro sin salir de la página. El recuadro cambia de color en cada lectura y el resultado sale en grande. Solo suena un aviso si el ticket ya había ingresado o no existe, y se puede silenciar.
+2. **Cámara normal del celular**: abre el ticket del estudiante y, si ese teléfono tiene sesión de equipo, muestra el botón de ingreso.
+3. **Búsqueda por nombre o código**, para cuando el QR no se deja leer.
+
+> El escáner necesita HTTPS. En la URL de Vercel funciona; en desarrollo, solo por `localhost`.
+
+> Si se pierde un celular con la sesión abierta, cambia `ADMIN_PIN` en Vercel y vuelve a desplegar: eso cierra todas las sesiones de inmediato.
 
 ---
 

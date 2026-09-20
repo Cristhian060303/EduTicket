@@ -2,11 +2,14 @@ import type { Metadata } from "next";
 import { headers } from "next/headers";
 import { notFound } from "next/navigation";
 import QRCode from "qrcode";
+import CheckInButton from "@/components/admin/CheckInButton";
 import Aurora from "@/components/Aurora";
 import Header from "@/components/Header";
+import LoanRequest from "@/components/LoanRequest";
 import TicketActions from "@/components/TicketActions";
 import TicketStub from "@/components/TicketStub";
-import { getTicket } from "@/lib/db";
+import { isAdmin } from "@/lib/auth";
+import { getBooks, getLoansForTicket, getTicket } from "@/lib/db";
 
 type Params = { params: Promise<{ token: string }> };
 
@@ -44,7 +47,12 @@ export default async function TicketPage({ params }: Params) {
 
   if (!ticket) notFound();
 
-  const url = await ticketUrl(ticket.token);
+  const [url, team, books, loans] = await Promise.all([
+    ticketUrl(ticket.token),
+    isAdmin(),
+    getBooks(),
+    getLoansForTicket(ticket.token),
+  ]);
 
   // Generated on the server so the QR is already in the HTML: it shows up
   // even if the phone loses signal right after opening the page.
@@ -77,7 +85,29 @@ export default async function TicketPage({ params }: Params) {
 
         <TicketActions url={url} />
 
-        <p className="no-print mt-6 text-center text-xs break-all text-mist/70">{url}</p>
+        {/* Only the team sees this: scanning the QR with a phone that is
+            signed in to the panel turns the ticket into the door screen. */}
+        {team && (
+          <div className="no-print mt-8 card flex flex-wrap items-center justify-between gap-4 p-5">
+            <div>
+              <p className="text-xs tracking-[0.18em] text-gold uppercase">Equipo</p>
+              <p className="mt-1 text-sm text-mist">
+                {ticket.checkedInAt
+                  ? "Este ticket ya fue usado para ingresar. Si quien lo muestra no es la persona del ticket, no debería pasar."
+                  : "Registra el ingreso de esta persona."}
+              </p>
+            </div>
+            <CheckInButton token={ticket.token} checkedIn={Boolean(ticket.checkedInAt)} />
+          </div>
+        )}
+
+        <LoanRequest
+          token={ticket.token}
+          books={books}
+          alreadyRequested={loans.map((loan) => loan.book.slug)}
+        />
+
+        <p className="no-print mt-8 text-center text-xs break-all text-mist/70">{url}</p>
       </main>
     </>
   );
