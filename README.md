@@ -28,7 +28,7 @@ npm run dev
 
 Abre <http://localhost:3000>.
 
-> La portada funciona **sin base de datos**: mientras no configures Supabase, el catálogo se lee de [lib/site.ts](lib/site.ts). El registro de tickets sí la necesita (Fase 2).
+> La portada funciona **sin base de datos**: mientras no configures Supabase, el catálogo se lee de [lib/site.ts](lib/site.ts). El registro de tickets sí la necesita.
 
 ### Comandos
 
@@ -45,8 +45,9 @@ Abre <http://localhost:3000>.
 
 1. Crea una cuenta gratuita en [supabase.com](https://supabase.com) y un proyecto nuevo.
 2. Entra a **SQL Editor** y ejecuta, en este orden:
-   - [db/01_schema.sql](db/01_schema.sql) → crea las tablas y la función de cupos
-   - [db/02_seed.sql](db/02_seed.sql) → crea el turno, los **30 cupos** y los 3 libros
+   - [db/01_schema.sql](db/01_schema.sql) → tablas y función de reclamo de cupos
+   - [db/02_seed.sql](db/02_seed.sql) → el turno, los **30 cupos** y los 3 libros
+   - [db/03_ticket_token.sql](db/03_ticket_token.sql) → solo si ya habías ejecutado una versión anterior del 01: agrega el token del ticket
 3. Ve a **Project Settings → API** y copia en tu `.env.local`:
    - `NEXT_PUBLIC_SUPABASE_URL` ← *Project URL*
    - `SUPABASE_SERVICE_ROLE_KEY` ← *service_role* ⚠️ **secreta**
@@ -81,32 +82,26 @@ EduTicket/
 │  ├─ layout.tsx        Tipografías y metadatos del sitio
 │  └─ globals.css       Sistema de diseño: colores, animaciones, utilidades
 ├─ components/          Piezas reutilizables de interfaz
+│  ├─ admin/            Escáner QR, ingreso y préstamos del panel
 │  ├─ Aurora.tsx        Fondo animado
 │  ├─ BookCard.tsx      Tarjeta de libro
 │  ├─ Countdown.tsx     Cuenta regresiva
 │  ├─ Header.tsx        Barra superior fija
 │  ├─ Logo.tsx          Marca de EduTicket (ticket + libro, en SVG)
-│  └─ Reveal.tsx        Aparición al hacer scroll
+│  ├─ RegisterForm.tsx  Formulario de registro
+│  ├─ Reveal.tsx        Aparición al hacer scroll
+│  ├─ TicketStub.tsx    El ticket con su QR
+│  └─ TrailerEmbed.tsx  Reproductor del book trailer
 ├─ lib/
-│  ├─ site.ts           Datos del evento y catálogo
+│  ├─ auth.ts           Sesión del panel con PIN
+│  ├─ db.ts             Todas las consultas a la base (solo servidor)
+│  ├─ site.ts           Datos del evento
 │  └─ supabase.ts       Conexión a la base de datos (solo servidor)
-├─ db/                  SQL para crear y poblar la base de datos
-├─ public/covers/       Imágenes de las portadas
+├─ db/                  SQL para crear, poblar y limpiar la base
+├─ public/covers/       Portadas de los libros
+├─ public/trailers/     Book trailers y sus miniaturas
 └─ DESIGN.md            Identidad visual
 ```
-
----
-
-## Estado por fases
-
-| Fase | Estado |
-|------|--------|
-| 0 · Definiciones | 🟡 Faltan expositores, hora de inicio y portada de dinosaurios |
-| 1 · Base técnica | ✅ Proyecto, diseño, esquema SQL y despliegue |
-| 2 · Flujo del asistente | ✅ Registro, cupos, ticket con QR y fichas de libro |
-| 3 · Panel del equipo | ✅ Asistentes, puerta, préstamos y editor de libros |
-| 4 · Pulido y ensayo | ⬜ Simulacro completo antes del 16 de octubre |
-| 5 · Cierre | ⬜ Informe y borrado de datos |
 
 ---
 
@@ -154,7 +149,9 @@ Está en **`/admin`** y se entra con el PIN de `ADMIN_PIN`. La sesión dura 12 h
 
 ## Sobre los datos de los asistentes
 
-Se recoge lo mínimo —nombres, apellidos, curso y paralelo— y **solo** para controlar el aforo y los préstamos. La lista nunca es pública: se ve desde el panel protegido con PIN. Después del evento y de las devoluciones, los datos se exportan para el informe y **se borran de la base**.
+Se recoge lo mínimo —nombres, apellidos, curso y paralelo— y **solo** para controlar el aforo y los préstamos. La lista nunca es pública: se ve desde el panel protegido con PIN, y la URL de cada ticket usa un código aleatorio que no se puede adivinar.
+
+Después del evento y de las devoluciones, los datos se exportan para el informe y **se borran de la base** con [db/99_reset_attendees.sql](db/99_reset_attendees.sql).
 
 ## Tecnologías
 
