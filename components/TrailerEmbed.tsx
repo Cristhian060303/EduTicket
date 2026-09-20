@@ -1,7 +1,24 @@
 "use client";
 
-import { Play, X } from "lucide-react";
+import { Play, RotateCw, X } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
+
+/**
+ * Two APIs that TypeScript does not declare yet.
+ *
+ * `lock` is the Screen Orientation API, which only works while in native
+ * fullscreen and is absent on iOS. `webkitEnterFullscreen` is iOS Safari's
+ * own video player, which rotates to landscape by itself — it is the only way
+ * to get the effect there.
+ */
+type OrientationLock = ScreenOrientation & {
+  lock?: (orientation: "landscape") => Promise<void>;
+  unlock?: () => void;
+};
+
+type IOSVideo = HTMLVideoElement & {
+  webkitEnterFullscreen?: () => void;
+};
 
 /**
  * Book trailer player.
@@ -37,12 +54,16 @@ export default function TrailerEmbed({
   const overlayRef = useRef<HTMLDivElement>(null);
   const closeButtonRef = useRef<HTMLButtonElement>(null);
   const triggerRef = useRef<HTMLButtonElement>(null);
+  const videoRef = useRef<HTMLVideoElement>(null);
 
   const isFile = Boolean(url && (/\.(mp4|webm|mov)$/i.test(url) || url.startsWith("/")));
   const videoId = url && !isFile ? youtubeId(url) : null;
 
   const close = useCallback(() => {
     setClosing(true);
+
+    // Give the phone its rotation back before anything else.
+    (screen.orientation as OrientationLock | undefined)?.unlock?.();
 
     if (document.fullscreenElement) void document.exitFullscreen().catch(() => {});
 
@@ -56,10 +77,30 @@ export default function TrailerEmbed({
 
   const openTheatre = () => {
     setOpen(true);
-    // Best effort: some browsers refuse fullscreen for a plain element.
-    window.setTimeout(() => {
-      overlayRef.current?.requestFullscreen?.().catch(() => {});
+
+    window.setTimeout(async () => {
       closeButtonRef.current?.focus();
+
+      const phone = window.matchMedia("(max-width: 900px)").matches;
+      const overlay = overlayRef.current;
+
+      try {
+        // Fullscreen first: locking the orientation is only allowed from
+        // inside it. Some browsers refuse it for a plain element.
+        await overlay?.requestFullscreen?.();
+
+        if (phone) {
+          // Android/Chrome honours this. It fails when the phone has its own
+          // rotation lock on, which is the user's choice to make, not ours.
+          await (screen.orientation as OrientationLock).lock?.("landscape");
+        }
+      } catch {
+        // iOS Safari lands here: it grants fullscreen to a <video> and to
+        // nothing else, and knows no orientation lock. Its native player
+        // rotates on its own, so hand the video over to it.
+        const video = videoRef.current as IOSVideo | null;
+        if (phone && video?.webkitEnterFullscreen) video.webkitEnterFullscreen();
+      }
     }, 50);
   };
 
@@ -75,6 +116,12 @@ export default function TrailerEmbed({
       if (!document.fullscreenElement && !closing) close();
     };
 
+    // On iOS the video plays in Safari's own player: when the viewer dismisses
+    // it, the theatre behind has to go too, or they come back to a black
+    // screen with nothing on it.
+    const video = videoRef.current;
+    video?.addEventListener("webkitendfullscreen", close);
+
     document.addEventListener("keydown", onKey);
     document.addEventListener("fullscreenchange", onFullscreenChange);
 
@@ -82,6 +129,7 @@ export default function TrailerEmbed({
     document.body.style.overflow = "hidden";
 
     return () => {
+      video?.removeEventListener("webkitendfullscreen", close);
       document.removeEventListener("keydown", onKey);
       document.removeEventListener("fullscreenchange", onFullscreenChange);
       document.body.style.overflow = previousOverflow;
@@ -167,6 +215,7 @@ export default function TrailerEmbed({
           >
             {isFile ? (
               <video
+                ref={videoRef}
                 src={url}
                 poster={poster ?? undefined}
                 controls
@@ -192,7 +241,21 @@ export default function TrailerEmbed({
             )}
           </div>
 
-          <p className="pointer-events-none absolute inset-x-0 bottom-3 text-center text-xs text-mist/60">
+          {/* Shown only on a phone held upright. Whether the screen refuses to
+              turn because the rotation lock is on cannot be detected, so the
+              message has to cover both cases: turning it, and why turning it
+              might do nothing. */}
+          <div className="pointer-events-none absolute inset-x-0 bottom-3 px-6 text-center portrait:block sm:portrait:hidden">
+            <p className="inline-flex items-center gap-2 text-xs text-parchment/90">
+              <RotateCw aria-hidden className="size-[1.15em] shrink-0" />
+              Gira el teléfono para verlo en grande
+            </p>
+            <p className="mt-1 text-[11px] leading-snug text-mist/70">
+              Si no rota, desactiva el bloqueo de rotación de tu celular
+            </p>
+          </div>
+
+          <p className="pointer-events-none absolute inset-x-0 bottom-3 text-center text-xs text-mist/60 portrait:hidden sm:portrait:block">
             Toca fuera del video o presiona Esc para volver
           </p>
         </div>
