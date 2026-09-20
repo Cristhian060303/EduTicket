@@ -59,7 +59,7 @@ export const BOOKS: Book[] = [
     synopsis:
       "Un profesor, su criado y un arponero acaban prisioneros del Nautilus, el submarino del enigmático capitán Nemo. Bajo la superficie los espera un mundo de bosques de coral, ciudades hundidas y criaturas que nadie ha visto jamás.",
     presenter: null,
-    trailer: null,
+    trailer: "/trailers/veinte-mil-leguas.mp4",
     accent: "abyss",
   },
   {
@@ -70,7 +70,7 @@ export const BOOKS: Book[] = [
     synopsis:
       "Bilbo Bolsón vivía tranquilo en su agujero hobbit hasta que un mago y trece enanos lo arrastraron a recuperar un tesoro custodiado por el dragón Smaug. Volvió siendo otro, y con un anillo en el bolsillo.",
     presenter: null,
-    trailer: null,
+    trailer: "/trailers/el-hobbit.mp4",
     accent: "gold",
   },
   {
@@ -81,7 +81,7 @@ export const BOOKS: Book[] = [
     synopsis:
       "Ciento sesenta millones de años de historia en un solo volumen: desde el Triásico hasta el asteroide que lo cambió todo, con las criaturas que dominaron el planeta mucho antes que nosotros.",
     presenter: null,
-    trailer: null,
+    trailer: "/trailers/enciclopedia-dinosaurios.mp4",
     accent: "magenta",
   },
 ];

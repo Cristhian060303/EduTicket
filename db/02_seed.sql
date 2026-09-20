@@ -26,7 +26,7 @@ select s.id, n
 -- The empty fields (presenter, trailer_url, the dinosaur cover) get filled in
 -- from the admin panel once the team hands them over.
 -- ---------------------------------------------------------------------------
-insert into books (slug, title, author, synopsis, cover_url, accent, sort_order, copies)
+insert into books (slug, title, author, synopsis, cover_url, trailer_url, accent, sort_order, copies)
 values
   (
     'veinte-mil-leguas',
@@ -34,6 +34,7 @@ values
     'Jules Verne',
     'Un profesor, su criado y un arponero acaban prisioneros del Nautilus, el submarino del enigmático capitán Nemo. Bajo la superficie los espera un mundo de bosques de coral, ciudades hundidas y criaturas que nadie ha visto jamás.',
     '/covers/veinte-mil-leguas.jpg',
+    '/trailers/veinte-mil-leguas.mp4',
     'abyss',
     1,
     1
@@ -44,6 +45,7 @@ values
     'J.R.R. Tolkien',
     'Bilbo Bolsón vivía tranquilo en su agujero hobbit hasta que un mago y trece enanos lo arrastraron a recuperar un tesoro custodiado por el dragón Smaug. Volvió siendo otro, y con un anillo en el bolsillo.',
     '/covers/el-hobbit.jpg',
+    '/trailers/el-hobbit.mp4',
     'gold',
     2,
     1
@@ -54,6 +56,7 @@ values
     'Ediciones Saldaña',
     'Ciento sesenta millones de años de historia en un solo volumen: desde el Triásico hasta el asteroide que lo cambió todo, con las criaturas que dominaron el planeta mucho antes que nosotros.',
     '/covers/enciclopedia-dinosaurios.jpg',
+    '/trailers/enciclopedia-dinosaurios.mp4',
     'magenta',
     3,
     1

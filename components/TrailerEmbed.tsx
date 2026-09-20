@@ -152,8 +152,14 @@ export default function TrailerEmbed({
     );
   }
 
-  // The still frame: our own poster for a local file, YouTube's for an embed.
-  const thumbnail = isFile ? poster : `https://i.ytimg.com/vi/${videoId}/hqdefault.jpg`;
+  /**
+   * The still frame. For a file served by this site the poster sits next to
+   * it with the same name and a .jpg extension, so it is derived rather than
+   * configured: one less path to keep in sync every time a trailer changes.
+   */
+  const thumbnail = isFile
+    ? (poster ?? url!.replace(/\.(mp4|webm|mov)$/i, ".jpg"))
+    : `https://i.ytimg.com/vi/${videoId}/hqdefault.jpg`;
 
   return (
     <>
@@ -217,7 +223,7 @@ export default function TrailerEmbed({
               <video
                 ref={videoRef}
                 src={url}
-                poster={poster ?? undefined}
+                poster={thumbnail ?? undefined}
                 controls
                 autoPlay
                 playsInline

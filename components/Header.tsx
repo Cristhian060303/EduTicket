@@ -13,6 +13,62 @@ const LINKS = [
 ];
 
 /**
+ * A link to a section of the landing page.
+ *
+ * Within the landing page it has to be a plain <a>: Next's <Link> resolves a
+ * hash-only href against the current URL and appends to it, so jumping from
+ * "/#books" to "#trailer" produced "/#books#trailer". The browser's own
+ * resolution replaces the hash, which is what a same-page jump needs — and
+ * there is no route change to hand to the router anyway.
+ *
+ * From any other page it is a real navigation, and there <Link> belongs.
+ */
+function SectionLink({
+  hash,
+  label,
+  atHome,
+  className,
+}: {
+  hash: string;
+  label: string;
+  atHome: boolean;
+  className: string;
+}) {
+  if (atHome) {
+    return (
+      <a href={hash} className={className}>
+        {label}
+      </a>
+    );
+  }
+
+  return (
+    <Link href={`/${hash}`} className={className}>
+      {label}
+    </Link>
+  );
+}
+
+/** The logo: back to the top of the landing page, or back to it from elsewhere. */
+function LogoLink({ atHome, children }: { atHome: boolean; children: React.ReactNode }) {
+  const className = "flex items-center gap-2.5";
+
+  if (atHome) {
+    return (
+      <a href="#top" className={className}>
+        {children}
+      </a>
+    );
+  }
+
+  return (
+    <Link href="/" className={className}>
+      {children}
+    </Link>
+  );
+}
+
+/**
  * Fixed top bar.
  *
  * Starts transparent over the hero and turns solid with a blur as soon as the
@@ -31,7 +87,6 @@ export default function Header() {
    * also why the logo could not simply be "#top".
    */
   const atHome = pathname === "/";
-  const section = (hash: string) => (atHome ? hash : `/${hash}`);
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 12);
@@ -51,26 +106,26 @@ export default function Header() {
     >
       <nav className="mx-auto flex h-16 max-w-6xl items-center justify-between px-5">
         {/* Logo */}
-        <Link href={atHome ? "#top" : "/"} className="flex items-center gap-2.5">
+        <LogoLink atHome={atHome}>
           <span className="grid size-9 place-items-center rounded-lg bg-gold text-midnight">
             <Logo className="size-6" />
           </span>
           <span className="font-display text-lg tracking-tight">
             Edu<span className="text-gold">Ticket</span>
           </span>
-        </Link>
+        </LogoLink>
 
         {/* Inline on a laptop; on a phone these move to their own row below,
             where the bar would otherwise not fit them beside the button. */}
         <ul className="hidden items-center gap-8 text-sm text-mist md:flex">
           {LINKS.map((link) => (
             <li key={link.href}>
-              <Link
-                href={section(link.href)}
+              <SectionLink
+                hash={link.href}
+                label={link.label}
+                atHome={atHome}
                 className="transition-colors hover:text-parchment"
-              >
-                {link.label}
-              </Link>
+              />
             </li>
           ))}
         </ul>
@@ -96,12 +151,12 @@ export default function Header() {
         <ul className="flex min-w-max items-center gap-5 text-sm text-mist">
           {LINKS.map((link) => (
             <li key={link.href}>
-              <Link
-                href={section(link.href)}
+              <SectionLink
+                hash={link.href}
+                label={link.label}
+                atHome={atHome}
                 className="transition-colors hover:text-parchment"
-              >
-                {link.label}
-              </Link>
+              />
             </li>
           ))}
         </ul>
