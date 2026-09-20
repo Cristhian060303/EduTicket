@@ -1,0 +1,28 @@
+# Dependencias — se reinstalan con `npm install` (nunca se suben al repo)
+/node_modules
+/.pnp
+.pnp.*
+
+# Build de Next.js
+/.next/
+/out/
+/build
+next-env.d.ts
+*.tsbuildinfo
+
+# Variables de entorno — contienen claves secretas, NUNCA subir
+.env
+.env*.local
+
+# Vercel
+.vercel
+
+# Sistema operativo / editores
+.DS_Store
+Thumbs.db
+*.log
+npm-debug.log*
+
+# Datos exportados del evento (contienen datos de estudiantes)
+/exportaciones
+*.csv
